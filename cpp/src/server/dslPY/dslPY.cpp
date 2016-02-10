@@ -20,6 +20,7 @@
 #include <pv/pvData.h>
 #include <pv/dsl.h>
 #include <pv/nt.h>
+#include <pv/rpcService.h>
 
 #include <pv/gatherV3Data.h>
 #include <pv/pyhelper.h>
@@ -594,117 +595,100 @@ try{
         NTMultiChannelPtr ntmultiChannel = getLiveMachine(values);
         return ntmultiChannel->getPVStructure();
     }
-    int num = names.size();
-    PyGILState_STATE gstate = PyGILState_Ensure();
-    PyObject *pyDict = PyDict_New();
-    for (int i = 0; i < num; i ++) {
-        PyObject *pyValue = Py_BuildValue("s",values[i].c_str());
-        PyDict_SetItemString(pyDict,names[i].c_str(),pyValue);
+    const size_t num = names.size();
+    assert(values.size()==num);
+
+    PyLockGIL gstate;
+
+    PyObj pyDict(PyDict_New());
+
+    for (size_t i = 0; i < num; i ++) {
+        PyObj pyValue(Py_BuildValue("s",values[i].c_str()));
+        PyDict_SetItemString(pyDict.get(), names[i].c_str(), pyValue.get());
     }
-    PyObject *pyValue = Py_BuildValue("s",functionName.c_str());
-    PyDict_SetItemString(pyDict,"function",pyValue);
+
+    PyObj pyValue(Py_BuildValue("s",functionName.c_str()));
+    PyDict_SetItemString(pyDict.get(),"function",pyValue.get()); // note that PyDict_SetItemString calls Py_INCREF
+
     if (functionName.compare("updateSnapshotEvent")==0) {
         NTScalarPtr pvReturn;
-        PyObject * pyTuple = PyTuple_New(1);
-        // put dictionary into the tuple
-        PyTuple_SetItem(pyTuple, 0, pyDict);
-        PyObject *result = PyEval_CallObject(prequest,pyTuple);
-        Py_DECREF(pyTuple);
-        if(result == NULL) {
+        PyObj result;
+        result.reset(PyObject_CallFunctionObjArgs(prequest, pyDict.get(), NULL));
+        if(result.get() == NULL) {
             pvReturn = noDataScalar("No data entry found in database.");
         } else {
             PyObject *list = 0;
-            if(!PyArg_ParseTuple(result,"O!:dslPY", &PyList_Type,&list))
+            if(!PyArg_ParseTuple(result.get(),"O!:dslPY", &PyList_Type,&list))
             {
                throw std::runtime_error("Wrong format for returned data from dslPY.");
             }
             pvReturn = updateSnapshotEvent(list);
         }
-        Py_DECREF(result);
-        PyGILState_Release(gstate);
         return pvReturn->getPVStructure();
+
     } else if (functionName.compare("retrieveSnapshot")==0) {
         NTMultiChannelPtr pvReturn;
-        PyObject * pyTuple = PyTuple_New(1);
-        // put dictionary into the tuple
-        PyTuple_SetItem(pyTuple, 0, pyDict);
-        PyObject *result = PyEval_CallObject(prequest,pyTuple);
-        Py_DECREF(pyTuple);
-        if(result == NULL) {
+        PyObj result;
+        result.reset(PyObject_CallFunctionObjArgs(prequest, pyDict.get(), NULL));
+        if(result.get() == NULL) {
             pvReturn = noDataMultiChannel("No data entry found in database.");
         } else {
             PyObject *list = 0;
-            if(!PyArg_ParseTuple(result,"O!:dslPY", &PyList_Type,&list))
+            if(!PyArg_ParseTuple(result.get(),"O!:dslPY", &PyList_Type,&list))
             {
                throw std::runtime_error("Wrong format for returned data from dslPY.");
             }
             pvReturn = retrieveSnapshot(list);
         }
-        Py_DECREF(result);
-        PyGILState_Release(gstate);
         return pvReturn->getPVStructure();
+
     } else if (functionName.compare("saveSnapshot")==0) {
         NTMultiChannelPtr pvReturn;
-        // A tuple is needed to pass to Python as parameter.
-        PyObject * pyTuple = PyTuple_New(1);
-        // put dictionary into the tuple
-        PyTuple_SetItem(pyTuple, 0, pyDict);
-        PyObject *pchannelnames = PyEval_CallObject(pgetchannames, pyTuple);
-        if(pchannelnames == NULL) {
-            pvReturn = noDataMultiChannel("Failed to retrieve channel names.");
-            Py_DECREF(pchannelnames);
+
+        PyObj pchannelnames;
+        pchannelnames.reset(PyObject_CallFunctionObjArgs(pgetchannames, pyDict.get(), NULL));
+        if(pchannelnames.get() == NULL || !PyList_Check(pchannelnames.get())) {
+            pvReturn = noDataMultiChannel("Failed to retrieve channel names. (or return is not a list)");
+
         } else {
-            Py_ssize_t list_len = PyList_Size(pchannelnames);
+            Py_ssize_t list_len = PyList_Size(pchannelnames.get());
 
             shared_vector<string> channames(list_len);
             PyObject * name;
             for (ssize_t i = 0; i < list_len; i ++) {
-                name = PyList_GetItem(pchannelnames, i);
+                name = PyList_GetItem(pchannelnames.get(), i);
                 channames[i] = PyString_AsString(name);
             }
             if (channames.size() == 0)
                 pvReturn = noDataMultiChannel("Failed to retrieve channel names.");
             else {
                 shared_vector<const string> names(freeze(channames));
-                Py_DECREF(pchannelnames);
                 NTMultiChannelPtr data = getLiveMachine(names);
                 PVStructurePtr pvStructure = data->getPVStructure();
 
                 // create a tuple is needed to pass to Python as parameter.
-                PyObject * pdata = PyCapsule_New(&pvStructure, "pvStructure", 0);
-                PyObject * pyTuple2 = PyTuple_New(2);
+                PyObj pdata(PyCapsule_New(&pvStructure, "pvStructure", 0));
 
-                // first value is the data from live machine
-                PyTuple_SetItem(pyTuple2, 0, pdata);
-                // second value is the dictionary
-                PyTuple_SetItem(pyTuple2, 1, pyDict);
-                PyObject *result = PyEval_CallObject(prequest,pyTuple2);
-                if(result == NULL) {
+                PyObj result;
+                result.reset(PyObject_CallFunctionObjArgs(prequest, pdata.get(), pyDict.get(), NULL));
+                if(result.get() == NULL) {
                     pvReturn = noDataMultiChannel("Failed to save snapshot.");
                 } else {
-                    pvReturn = saveSnapshot(result, data);
-                    Py_DECREF(result);
+                    pvReturn = saveSnapshot(result.get(), data);
                 }
-                Py_DECREF(pyTuple2);
             }
         }
-        Py_DECREF(pyTuple);
-        PyGILState_Release(gstate);
         return pvReturn->getPVStructure();
     } else {
         NTTablePtr pvReturn;
-        // A tuple is needed to pass to Python as parameter.
-        PyObject * pyTuple = PyTuple_New(1);
-        // put dictionary into the tuple
-        PyTuple_SetItem(pyTuple, 0, pyDict);
 
-        PyObject *result = PyEval_CallObject(prequest,pyTuple);
-        Py_DECREF(pyTuple);
-        if(result == NULL) {
+        PyObj result;
+        result.reset(PyObject_CallFunctionObjArgs(prequest, pyDict.get(), NULL));
+        if(result.get() == NULL) {
             pvReturn = noDataTable("No data entry found in database.");
         } else {
             PyObject *list = 0;
-            if(!PyArg_ParseTuple(result,"O!:dslPY", &PyList_Type,&list))
+            if(!PyArg_ParseTuple(result.get(),"O!:dslPY", &PyList_Type,&list))
             {
                 throw std::runtime_error("Wrong format for returned data from dslPY.");
             }
@@ -717,9 +701,7 @@ try{
             } else {
                 pvReturn = noDataTable("Did not find data");
             }
-            Py_DECREF(result);
         }
-        PyGILState_Release(gstate);
         return pvReturn->getPVStructure();
     }
 }catch(python_exception& e){
