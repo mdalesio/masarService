@@ -61,13 +61,36 @@ private:
     PyObject * pgetchannames;
 };
 
+PyMODINIT_FUNC initalarmPy(void);
+PyMODINIT_FUNC initchannelRPCPy(void);
+PyMODINIT_FUNC initcontrolPy(void);
+PyMODINIT_FUNC initdisplayPy(void);
+PyMODINIT_FUNC initgatherV3DataPy(void);
+PyMODINIT_FUNC initntmultiChannelPy(void);
+PyMODINIT_FUNC initntnameValuePy(void);
+PyMODINIT_FUNC initntscalarPy(void);
+PyMODINIT_FUNC initnttablePy(void);
+PyMODINIT_FUNC inittimeStampPy(void);
+
 DSL_RDB::DSL_RDB()
     : DSL(),prequest(0), pgetchannames(0)
 {
-   PyThreadState *py_tstate = NULL;
+#define INITTAB(NAME)   PyImport_AppendInittab(#NAME, init##NAME);
+    INITTAB(alarmPy);
+    INITTAB(channelRPCPy);
+    INITTAB(controlPy);
+    INITTAB(displayPy);
+    INITTAB(gatherV3DataPy);
+    INITTAB(ntmultiChannelPy);
+    INITTAB(ntnameValuePy);
+    INITTAB(ntscalarPy);
+    INITTAB(nttablePy);
+    INITTAB(timeStampPy);
+#undef INITTAB
+
    Py_Initialize();
    PyEval_InitThreads();
-   py_tstate = PyGILState_GetThisThreadState();
+   PyThreadState *py_tstate = PyGILState_GetThisThreadState();
    PyEval_ReleaseThread(py_tstate);
 }
 
