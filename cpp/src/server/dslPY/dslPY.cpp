@@ -84,16 +84,12 @@ bool DSL_RDB::init()
     PyGILState_STATE gstate = PyGILState_Ensure();
     PyObject * module = PyImport_ImportModule("masarserver.dslPY");
     if(module==0) {
-        string message("dslPY");
-        message += " does not exist or is not a python module";
-        cout << "DSL_RDB::init " << message << endl;
+        cout << "DSL_RDB::init dslPY does not exist or is not a python module" << endl;
         return false;
     }
     PyObject *pclass = PyObject_GetAttrString(module, "DSL");
     if(pclass==0) {
-        string message("class DSL");
-        message += " does not exist";
-        cout << "DSL_RDB::init " << message << endl;
+        cout << "DSL_RDB::init class DSL does not exist" << endl;
         Py_XDECREF(module);
         return false;
     }
@@ -106,18 +102,14 @@ bool DSL_RDB::init()
     PyObject *pinstance = PyEval_CallObject(pclass,pargs);
     Py_DECREF(pargs);
     if(pinstance==0) {
-        string message("class DSL");
-        message += " constructor failed";
-        cout << "DSL_RDB::init " << message << endl;
+        cout << "DSL_RDB::init class DSL constructor failed" << endl;
         Py_XDECREF(pclass);
         Py_XDECREF(module);
         return false;
     }
     prequest = PyObject_GetAttrString(pinstance, "request");
     if(prequest==0) {
-        string message("DSL::request");
-        message += " could not attach to method";
-        cout << "DSL_RDB::init " << message << endl;
+        cout << "DSL_RDB::init DSL::request could not attach to method" << endl;
         Py_XDECREF(pinstance);
         Py_XDECREF(pclass);
         Py_XDECREF(module);
@@ -125,9 +117,7 @@ bool DSL_RDB::init()
     }
     pgetchannames = PyObject_GetAttrString(pinstance, "retrieveChannelNames");
     if(pgetchannames==0) {
-        string message("DSL::request");
-        message += " could not attach to method";
-        cout << "DSL_RDB::init " << message << endl;
+        cout << "DSL_RDB::init DSL::request could not attach to method" << endl;
         Py_XDECREF(pinstance);
         Py_XDECREF(pclass);
         Py_XDECREF(module);
