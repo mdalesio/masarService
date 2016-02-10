@@ -5,11 +5,14 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cstddef>
+#include <cstdio>
 #include <string>
 #include <cstdio>
 #include <memory>
 #include <iostream>
 #include <signal.h>
+
+#include <Python.h>
 
 #include <pv/clientFactory.h>
 #include <pv/caProvider.h>
@@ -27,6 +30,7 @@
 #include <pv/pvData.h>
 #include <pv/rpcServer.h>
 #include <pv/masarService.h>
+#include <pv/pyhelper.h>
 
 using namespace std;
 using namespace epics::pvData;
@@ -72,12 +76,6 @@ try{
     const char *name = "masarService";
     if(argc>1) name = argv[1];
 
-    // register SIGNAL ABORT, TERM, and INT
-    signal(SIGABRT, &sighandler);
-    signal(SIGTERM, &sighandler);
-    signal(SIGINT,  &sighandler);
-    // set the prompt to the service name
-    setenv("IOCSH_PS1", "masarService> ", 1);
     RPCServer::shared_pointer rpcServer(new RPCServer());
     MasarService::shared_pointer service(MasarService::shared_pointer(new MasarService()));
     rpcServer->registerService(name, RPCService::shared_pointer(service));
@@ -99,7 +97,15 @@ try{
         // let the thread delete 'param'
         param.release();
     }
-    iocsh(NULL);
+    {
+        PyLockGIL L;
+        FILE *fp;
+        if(argc>2 && (fp=fopen(argv[2], "r"))!=NULL) {
+            PyRun_SimpleFile(fp, argv[2]);
+            fclose(fp);
+        }
+        PyRun_InteractiveLoop(stdin, "<stdin>");
+    }
     rpcServer->destroy();
     return 0;
 
