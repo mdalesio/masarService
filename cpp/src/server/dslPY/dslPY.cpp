@@ -83,7 +83,7 @@ DSL_RDB::~DSL_RDB()
 
 bool DSL_RDB::init()
 {
-    PyGILState_STATE gstate = PyGILState_Ensure();
+    PyLockGIL gstate;
     PyObject * module = PyImport_ImportModule("masarserver.dslPY");
     if(module==0) {
         cout << "DSL_RDB::init dslPY does not exist or is not a python module" << endl;
@@ -128,7 +128,6 @@ bool DSL_RDB::init()
     Py_XDECREF(pinstance);
     Py_XDECREF(pclass);
     Py_XDECREF(module);
-    PyGILState_Release(gstate);
     return true;
 }
 
@@ -140,7 +139,6 @@ static NTMultiChannelPtr noDataMultiChannel(std::string message) {
             addAlarm()->
             addTimeStamp()->
             create();
-    PVStructurePtr pvStructure = ntMultiChannel->getPVStructure();
 
     // Set alarm and severity
     PVAlarm pvAlarm;
