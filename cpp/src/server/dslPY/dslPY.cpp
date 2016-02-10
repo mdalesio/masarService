@@ -87,11 +87,13 @@ bool DSL_RDB::init()
     PyObject * module = PyImport_ImportModule("masarserver.dslPY");
     if(module==0) {
         cout << "DSL_RDB::init dslPY does not exist or is not a python module" << endl;
+        PyErr_Print();
         return false;
     }
     PyObject *pclass = PyObject_GetAttrString(module, "DSL");
     if(pclass==0) {
         cout << "DSL_RDB::init class DSL does not exist" << endl;
+        PyErr_Print();
         Py_XDECREF(module);
         return false;
     }
@@ -99,6 +101,7 @@ bool DSL_RDB::init()
     if (pargs == NULL) {
         Py_DECREF(pclass);
         cout <<"Can't build arguments list\n";
+        PyErr_Print();
         return false;
     }
     PyObject *pinstance = PyEval_CallObject(pclass,pargs);
@@ -107,6 +110,7 @@ bool DSL_RDB::init()
         cout << "DSL_RDB::init class DSL constructor failed" << endl;
         Py_XDECREF(pclass);
         Py_XDECREF(module);
+        PyErr_Print();
         return false;
     }
     prequest = PyObject_GetAttrString(pinstance, "request");
@@ -115,6 +119,7 @@ bool DSL_RDB::init()
         Py_XDECREF(pinstance);
         Py_XDECREF(pclass);
         Py_XDECREF(module);
+        PyErr_Print();
         return false;
     }
     pgetchannames = PyObject_GetAttrString(pinstance, "retrieveChannelNames");
@@ -123,6 +128,7 @@ bool DSL_RDB::init()
         Py_XDECREF(pinstance);
         Py_XDECREF(pclass);
         Py_XDECREF(module);
+        PyErr_Print();
         return false;
     }
     Py_XDECREF(pinstance);

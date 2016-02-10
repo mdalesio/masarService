@@ -66,6 +66,7 @@ static void threadRunner(void* usr)
 
 int main(int argc,char *argv[])
 {
+try{
     ClientFactory::start();
     ::epics::pvAccess::ca::CAClientFactory::start();
     const char *name = "masarService";
@@ -98,10 +99,14 @@ int main(int argc,char *argv[])
         // let the thread delete 'param'
         param.release();
     }
-
     iocsh(NULL);
     rpcServer->destroy();
-    return (0);
+    return 0;
+
+}catch(std::exception& e){
+    cout << "Exception: " << e.what()<<"\n";
+    return 1;
+}
 }
 
 #ifdef XXXXX
