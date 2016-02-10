@@ -11,6 +11,7 @@
 #include <Python.h>
 
 #include <pv/gatherV3Data.h>
+#include <pv/pyhelper.h>
 #include <stdexcept>
 
 namespace epics { namespace masar {
@@ -43,17 +44,11 @@ GatherV3DataPyPvt::~GatherV3DataPyPvt()
 
 static PyObject * _init(PyObject *willBeNull, PyObject *args)
 {
+try{
     PyObject *pytuple = 0;
-    if(!PyArg_ParseTuple(args,"O:gatherV3DataPy",
-        &pytuple))
+    if(!PyArg_ParseTuple(args,"O!:gatherV3DataPy",
+        &PyTuple_Type, &pytuple))
     {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (channelNames)");
-        return NULL;
-    }
-    if(!PyTuple_Check(pytuple)) {
-        PyErr_SetString(PyExc_SyntaxError,
-           "argument is not a tuple of channelNames");
         return NULL;
     }
     Py_ssize_t num = PyTuple_GET_SIZE(pytuple);
@@ -67,26 +62,25 @@ static PyObject * _init(PyObject *willBeNull, PyObject *args)
         }
         char *sval =  PyString_AsString(pyobject);
         if(sval==NULL) {
-            PyErr_SetString(PyExc_SyntaxError,
-               "a channelName is not a string");
             return NULL;
         }
-        names[i] = string(sval);
+        names[i] = sval;
     }
     shared_vector<const string> name(freeze(names));
     GatherV3DataPyPvt *pvt = new GatherV3DataPyPvt(name);
     return PyCapsule_New(pvt,"gatherV3DataPvt",0);
+}EXECTOPY(std::exception, RuntimeError)
+    return NULL;
 }
 
 
 static PyObject * _destroy(PyObject *willBeNull, PyObject *args)
 {
+try{
     PyObject *pcapsule = 0;
-    if(!PyArg_ParseTuple(args,"O:gatherV3DataPy",
-        &pcapsule))
+    if(!PyArg_ParseTuple(args,"O!:gatherV3DataPy",
+        &PyCapsule_Type, &pcapsule))
     {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (pvt)");
         return NULL;
     }
     void *pvoid = PyCapsule_GetPointer(pcapsule,"gatherV3DataPvt");
@@ -95,25 +89,26 @@ static PyObject * _destroy(PyObject *willBeNull, PyObject *args)
            "first arg must be return from _init");
         return NULL;
     }
-    GatherV3DataPyPvt *pvt = static_cast<GatherV3DataPyPvt *>(pvoid);
+    std::auto_ptr<GatherV3DataPyPvt> pvt(static_cast<GatherV3DataPyPvt *>(pvoid));
     GatherV3DataPtr const & gatherV3Data = pvt->gatherV3Data;
-    Py_BEGIN_ALLOW_THREADS
+    {
+        PyUnlockGIL U;
         gatherV3Data->destroy();
-        delete pvt;
-    Py_END_ALLOW_THREADS
+    }
     Py_RETURN_NONE;
+}EXECTOPY(std::exception, RuntimeError)
+    return NULL;
 }
 
 static PyObject * _connect(PyObject *willBeNull, PyObject *args)
 {
+try {
     PyObject *pcapsule = 0;
     double timeout = 1.0;
-    if(!PyArg_ParseTuple(args,"Od:gatherV3DataPy",
-        &pcapsule,
+    if(!PyArg_ParseTuple(args,"O!d:gatherV3DataPy",
+        &PyCapsule_Type, &pcapsule,
         &timeout))
     {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (pvt,timeout)");
         return NULL;
     }
     void *pvoid = PyCapsule_GetPointer(pcapsule,"gatherV3DataPvt");
@@ -125,23 +120,25 @@ static PyObject * _connect(PyObject *willBeNull, PyObject *args)
     GatherV3DataPyPvt *pvt = static_cast<GatherV3DataPyPvt *>(pvoid);
     GatherV3DataPtr const & gatherV3Data = pvt->gatherV3Data;
     bool result = false;
-    Py_BEGIN_ALLOW_THREADS
+    {
+        PyUnlockGIL U;
         result = gatherV3Data->connect(timeout);
-    Py_END_ALLOW_THREADS
+    }
     if(result) {
          Py_RETURN_TRUE;
     }
     Py_RETURN_FALSE;
+}EXECTOPY(std::exception, RuntimeError)
+    return NULL;
 }
 
 static PyObject * _get(PyObject *willBeNull, PyObject *args)
 {
+try {
     PyObject *pcapsule = 0;
-    if(!PyArg_ParseTuple(args,"O:gatherV3DataPy",
-        &pcapsule))
+    if(!PyArg_ParseTuple(args,"O!:gatherV3DataPy",
+        &PyCapsule_Type, &pcapsule))
     {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (pvt)");
         return NULL;
     }
     void *pvoid = PyCapsule_GetPointer(pcapsule,"gatherV3DataPvt");
@@ -153,23 +150,25 @@ static PyObject * _get(PyObject *willBeNull, PyObject *args)
     GatherV3DataPyPvt *pvt = static_cast<GatherV3DataPyPvt *>(pvoid);
     GatherV3DataPtr const & gatherV3Data = pvt->gatherV3Data;
     bool result = true;
-    Py_BEGIN_ALLOW_THREADS
+    {
+        PyUnlockGIL U;
         result = gatherV3Data->get();
-    Py_END_ALLOW_THREADS
+    }
     if(result) {
         Py_RETURN_TRUE;
     }
     Py_RETURN_FALSE;
+}EXECTOPY(std::exception, RuntimeError)
+    return NULL;
 }
 
 static PyObject * _put(PyObject *willBeNull, PyObject *args)
 {
+try {
     PyObject *pcapsule = 0;
-    if(!PyArg_ParseTuple(args,"O:gatherV3DataPy",
-        &pcapsule))
+    if(!PyArg_ParseTuple(args,"O!:gatherV3DataPy",
+        &PyCapsule_Type, &pcapsule))
     {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (pvt)");
         return NULL;
     }
     void *pvoid = PyCapsule_GetPointer(pcapsule,"gatherV3DataPvt");
@@ -181,20 +180,24 @@ static PyObject * _put(PyObject *willBeNull, PyObject *args)
     GatherV3DataPyPvt *pvt = static_cast<GatherV3DataPyPvt *>(pvoid);
     GatherV3DataPtr const & gatherV3Data = pvt->gatherV3Data;
     bool result = true;
-    Py_BEGIN_ALLOW_THREADS
+    {
+        PyUnlockGIL U;
         result = gatherV3Data->put();
-    Py_END_ALLOW_THREADS
+    }
     if(result) {
         Py_RETURN_TRUE;
     }
     Py_RETURN_FALSE;
+}EXECTOPY(std::exception, RuntimeError)
+    return NULL;
 }
 
 static PyObject * _getMessage(PyObject *willBeNull, PyObject *args)
 {
+try {
     PyObject *pcapsule = 0;
-    if(!PyArg_ParseTuple(args,"O:gatherV3DataPy",
-        &pcapsule))
+    if(!PyArg_ParseTuple(args,"O!:gatherV3DataPy",
+        &PyCapsule_Type, &pcapsule))
     {
         PyErr_SetString(PyExc_SyntaxError,
            "Bad argument. Expected (pvt)");
@@ -208,15 +211,17 @@ static PyObject * _getMessage(PyObject *willBeNull, PyObject *args)
     }
     GatherV3DataPyPvt *pvt = static_cast<GatherV3DataPyPvt *>(pvoid);
     string message = pvt->gatherV3Data->getMessage();
-    PyObject *pyObject = Py_BuildValue("s",message.c_str());
-    return pyObject;
+    return Py_BuildValue("s",message.c_str());
+}EXECTOPY(std::exception, RuntimeError)
+    return NULL;
 }
 
 static PyObject * _getPVStructure(PyObject *willBeNull, PyObject *args)
 {
+try {
     PyObject *pcapsule = 0;
-    if(!PyArg_ParseTuple(args,"O:gatherV3DataPy",
-        &pcapsule))
+    if(!PyArg_ParseTuple(args,"O!:gatherV3DataPy",
+        &PyCapsule_Type, &pcapsule))
     {
         return NULL;
     }
@@ -229,6 +234,8 @@ static PyObject * _getPVStructure(PyObject *willBeNull, PyObject *args)
     GatherV3DataPyPvt *pvt = static_cast<GatherV3DataPyPvt *>(pvoid);
     pvt->pvStructure = pvt->gatherV3Data->getNTMultiChannel()->getPVStructure();
     return PyCapsule_New(&pvt->pvStructure,"pvStructure",0);
+}EXECTOPY(std::exception, RuntimeError)
+    return NULL;
 }
 
 static char _initDoc[] = "_init gatherV3DataPy.";
