@@ -10,11 +10,13 @@
 #undef _XOPEN_SOURCE
 #include <Python.h>
 
+#include <stdexcept>
 
 #include <pv/pvData.h>
 #include <pv/timeStamp.h>
 #include <pv/pvTimeStamp.h>
-#include <stdexcept>
+
+#include <pv/pyhelper.h>
 
 namespace epics { namespace masar {
 
@@ -26,17 +28,15 @@ public:
     TimeStampPvt();
     ~TimeStampPvt();
     void destroy();
-    PyObject *get(){return pyObject;}
+    PyObject *get(){return pyObject.get();}
 public:
     TimeStamp timeStamp;
-    PyObject *pyObject;
+    PyObj pyObject;
 };
 
 TimeStampPvt::TimeStampPvt()
-{
-    pyObject = PyCapsule_New(&timeStamp,"timeStamp",0);
-    Py_INCREF(pyObject);
-}
+    :pyObject(PyCapsule_New(&timeStamp,"timeStamp",0))
+{}
 
 TimeStampPvt::~TimeStampPvt()
 {
@@ -44,15 +44,17 @@ TimeStampPvt::~TimeStampPvt()
 
 void TimeStampPvt::destroy()
 {
-    Py_DECREF(pyObject);
+    pyObject.reset();
 }
 
 
 static PyObject * _init(PyObject *willbenull, PyObject *args)
 {
+try{
     TimeStampPvt *pvt = new TimeStampPvt();
-    PyObject *pyObject = PyCapsule_New(pvt,"timeStampPvt",0);
-    return pyObject;
+    return PyCapsule_New(pvt,"timeStampPvt",0);
+}EXECTOPY(std::exception, RuntimeError)
+    return NULL;
 }
 
 static PyObject * _destroy(PyObject *willBeNull, PyObject *args)
