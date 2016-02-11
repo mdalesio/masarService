@@ -2,8 +2,12 @@
 #define PYHELPER_H
 
 #include <stdexcept>
+#include <memory>
+#include <typeinfo>
 
 #include <Python.h>
+
+#include <pv/sharedPtr.h>
 
 // Throw this to indicate that a python exception is active
 struct python_exception : public std::runtime_error
@@ -103,6 +107,51 @@ struct PyUnlockGIL
     PyThreadState *state;
     PyUnlockGIL() :state(PyEval_SaveThread()) {}
     ~PyUnlockGIL() { PyEval_RestoreThread(state); }
+};
+
+template<class T>
+struct EnCapsule
+{
+    typedef T value_type;
+    value_type val;
+
+    EnCapsule(const value_type& v) :val(v) {}
+
+    static
+    PyObject* wrap(const T& v)
+    {
+        std::auto_ptr<EnCapsule> R(new EnCapsule(v));
+        PyObj ret(PyCapsule_New(R.get(), typeid(EnCapsule).name(), &cleanup));
+        R.release();
+        return ret.release();
+    }
+
+    static
+    value_type* unwrap(PyObject *cap)
+    {
+        void *raw = PyCapsule_GetPointer(cap, typeid(EnCapsule).name());
+        if(!raw) {
+            PyErr_Format(PyExc_RuntimeError, "wrong capsule type %s expect %s",
+                         PyCapsule_GetName(cap), typeid(EnCapsule).name());
+            return 0;
+        }
+        EnCapsule *ptr = static_cast<EnCapsule*>(raw);
+        return &ptr->val;
+    }
+
+private:
+    static
+    void cleanup(PyObject *cap)
+    {
+        void *raw = PyCapsule_GetPointer(cap, typeid(EnCapsule).name());
+        if(!raw) return;
+        EnCapsule *ptr = static_cast<EnCapsule*>(raw);
+        try{
+            delete ptr;
+        }catch(std::exception& e){
+            PyErr_Format(PyExc_RuntimeError, "EnCapsule::cleanup(): %s", e.what());
+        }
+    }
 };
 
 #define EXECTOPY(klass, PYEXC) catch(klass& e) { PyErr_SetString(PyExc_##PYEXC, e.what()); }
