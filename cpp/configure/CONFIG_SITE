@@ -43,3 +43,5 @@ USR_INCLUDES += -I $(INSTALL_LOCATION)/include
 
 
 
+TARGET_CFLAGS += -fno-strict-aliasing
+TARGET_CXXFLAGS += -fno-strict-aliasing
