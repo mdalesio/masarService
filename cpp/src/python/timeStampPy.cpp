@@ -51,6 +51,7 @@ void TimeStampPvt::destroy()
 static PyObject * _init(PyObject *willbenull, PyObject *args)
 {
 try{
+        std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
     TimeStampPvt *pvt = new TimeStampPvt();
     return PyCapsule_New(pvt,"timeStampPvt",0);
 }EXECTOPY(std::exception, RuntimeError)

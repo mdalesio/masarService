@@ -59,6 +59,7 @@ void NTNameValuePvt::destroy()
 
 static PyObject * _init(PyObject *willbenull, PyObject *args)
 {
+    std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
     const char *function = 0;
     PyObject *dict = 0;
     if(!PyArg_ParseTuple(args,"sO!:ntnamevaluePy",

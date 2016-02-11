@@ -50,6 +50,7 @@ void ControlPvt::destroy()
 
 static PyObject * _init(PyObject *willbenull, PyObject *args)
 {
+    std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
     ControlPvt *pvt = new ControlPvt();
     PyObject *pyObject = PyCapsule_New(pvt,"controlPvt",0);
     return pyObject;

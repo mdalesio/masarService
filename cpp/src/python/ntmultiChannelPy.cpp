@@ -62,6 +62,7 @@ void NTMultiChannelPvt::destroy()
 
 static PyObject * _init(PyObject *willbenull, PyObject *args)
 {
+    std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
     PyObject *capsule = 0;
     if(!PyArg_ParseTuple(args,"O:ntmultiChannelpy",
         &capsule))

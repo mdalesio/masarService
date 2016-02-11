@@ -61,6 +61,7 @@ void NTTablePvt::destroy()
 
 static PyObject * _init(PyObject *willbenull, PyObject *args)
 {
+    std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
     PyObject *capsule = 0;
     if(!PyArg_ParseTuple(args,"O:nttablePy",
         &capsule))
@@ -165,7 +166,9 @@ static PyObject * _destroy(PyObject *willBeNull, PyObject *args)
     }
     NTTablePvt *pvt = static_cast<NTTablePvt *>(pvoid);
     pvt->destroy();
+    PyCapsule_SetPointer(pcapsule, NULL);
     delete pvt;
+    PyCapsule_SetPointer(pcapsule, NULL);
     Py_INCREF(Py_None);
     return Py_None;
 }

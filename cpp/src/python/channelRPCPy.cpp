@@ -66,6 +66,7 @@ void ChannelRPCPyPvt::destroy()
 
 static PyObject * _init(PyObject *willBeNull, PyObject *args)
 {
+    std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
     const char *serverName = 0;
     if(!PyArg_ParseTuple(args,"s:channelRPCPy",
         &serverName))

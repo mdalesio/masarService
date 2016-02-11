@@ -51,6 +51,7 @@ void AlarmPvt::destroy()
 
 static PyObject * _init(PyObject *willbenull, PyObject *args)
 {
+    std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
     AlarmPvt *pvt = new AlarmPvt();
     PyObject *pyObject = PyCapsule_New(pvt,"alarmPvt",0);
     return pyObject;

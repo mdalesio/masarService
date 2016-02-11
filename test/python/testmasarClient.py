@@ -69,6 +69,10 @@ if __name__ == "__main__":
     channel = 'masarService'
     mc = masarClient.client(channelname=channel)
 
+    getSystemList(mc)
+    getMasarConfigs(mc)
+    sys.exit(0)
+
     res1 = saveMasarSnapshot(mc)
     print res1
     print "event id:", res1[0]

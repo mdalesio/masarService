@@ -50,6 +50,7 @@ void DisplayPvt::destroy()
 
 static PyObject * _init(PyObject *willbenull, PyObject *args)
 {
+    std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
     DisplayPvt *pvt = new DisplayPvt();
     PyObject *pyObject = PyCapsule_New(pvt,"displayPvt",0);
     return pyObject;

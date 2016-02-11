@@ -45,6 +45,7 @@ GatherV3DataPyPvt::~GatherV3DataPyPvt()
 static PyObject * _init(PyObject *willBeNull, PyObject *args)
 {
 try{
+        std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
     PyObject *pytuple = 0;
     if(!PyArg_ParseTuple(args,"O!:gatherV3DataPy",
         &PyTuple_Type, &pytuple))
