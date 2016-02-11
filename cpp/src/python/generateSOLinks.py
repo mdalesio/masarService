@@ -32,7 +32,7 @@ libDir = "../../lib/" + hostArch
 fileList = os.listdir(libDir)
 soLib = None
 for element in fileList :
-    if element.endswith("masarPy" + dylib) :
+    if element.endswith("masarCore" + dylib) :
         soLib = element
         break
 if soLib==None :
