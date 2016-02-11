@@ -275,9 +275,9 @@ static PyObject * _getAlarm(PyObject *willBeNull, PyObject *args)
 {
     PyObject *pcapsule = 0;
     PyObject *palarm = 0;
-    if(!PyArg_ParseTuple(args,"OO:nttablePy",
-        &pcapsule,
-        &palarm))
+    if(!PyArg_ParseTuple(args,"O!O!:nttablePy",
+        &PyCapsule_Type, &pcapsule,
+        &PyCapsule_Type, &palarm))
     {
         PyErr_SetString(PyExc_SyntaxError,
            "Bad argument. Expected (pvt,palarm)");
@@ -290,13 +290,8 @@ static PyObject * _getAlarm(PyObject *willBeNull, PyObject *args)
         return NULL;
     }
     NTTablePvt *pvt = static_cast<NTTablePvt *>(pvoid);
-    pvoid = PyCapsule_GetPointer(palarm,"alarm");
-    if(pvoid==0) {
-        PyErr_SetString(PyExc_SyntaxError,
-           "second argument is not an alarm capsule");
-        return NULL;
-    }
-    Alarm *xxx = static_cast<Alarm *>(pvoid);
+    Alarm *xxx = EnCapsule<Alarm>::unwrap(palarm);
+    if(!xxx) return NULL;
     PVStructurePtr pvStructure = pvt->nttable->getAlarm();
     //if(pvStructure!=0) {
     if(!pvStructure) {

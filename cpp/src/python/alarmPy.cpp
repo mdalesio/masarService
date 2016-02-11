@@ -18,179 +18,101 @@
 
 #include "pyhelper.h"
 
-namespace epics { namespace masar {
-
 using namespace epics::pvData;
 using namespace std;
 
-class AlarmPvt {
-public:
-    AlarmPvt();
-    ~AlarmPvt();
-    void destroy();
-    PyObject *get(){return pyObject.get();}
-public:
-    Alarm alarm;
-    PyObj pyObject;
-};
-
-AlarmPvt::AlarmPvt()
-    :pyObject(PyCapsule_New(&alarm,"alarm",0))
-{
-}
-
-AlarmPvt::~AlarmPvt()
-{
-}
-
-void AlarmPvt::destroy()
-{
-    pyObject.reset();
-}
-
+namespace {
+typedef EnCapsule<Alarm> alarm_t;
 
 static PyObject * _init(PyObject *willbenull, PyObject *args)
 {
     std::cerr<<__FILE__<<":"<<__LINE__<<"\n";
-    AlarmPvt *pvt = new AlarmPvt();
-    PyObject *pyObject = PyCapsule_New(pvt,"alarmPvt",0);
-    return pyObject;
+    return alarm_t::wrap(Alarm());
 }
 
 static PyObject * _destroy(PyObject *willBeNull, PyObject *args)
 {
-    PyObject *pcapsule = 0;
-    if(!PyArg_ParseTuple(args,"O:alarmPy",
-        &pcapsule))
-    {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (pvt)");
-        return NULL;
-    }
-    void *pvoid = PyCapsule_GetPointer(pcapsule,"alarmPvt");
-    if(pvoid==0) {
-        PyErr_SetString(PyExc_SyntaxError,
-           "first arg must be return from _init");
-        return NULL;
-    }
-    AlarmPvt *pvt = static_cast<AlarmPvt *>(pvoid);
-    pvt->destroy();
-    delete pvt;
-    PyCapsule_SetPointer(pcapsule, NULL);
-    Py_INCREF(Py_None);
-    return Py_None;
+    Py_RETURN_NONE;
 }
 
 
 static PyObject * _str(PyObject *willBeNull, PyObject *args)
 {
     PyObject *pcapsule = 0;
-    if(!PyArg_ParseTuple(args,"O:alarmPy",
-        &pcapsule))
+    if(!PyArg_ParseTuple(args,"O!:alarmPy",
+        &PyCapsule_Type, &pcapsule))
     {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (pvt)");
         return NULL;
     }
-    void *pvoid = PyCapsule_GetPointer(pcapsule,"alarmPvt");
-    if(pvoid==0) {
-        PyErr_SetString(PyExc_SyntaxError,
-           "first arg must be return from _init");
-        return NULL;
-    }
-    AlarmPvt *pvt = static_cast<AlarmPvt *>(pvoid);
-    char buffer[256];
-    string message = pvt->alarm.getMessage();
-    string severity = (*AlarmSeverityFunc::getSeverityNames())[pvt->alarm.getSeverity()];
-    string status = (*AlarmStatusFunc::getStatusNames())[pvt->alarm.getStatus()];
+    Alarm* alarm = alarm_t::unwrap(pcapsule);
+    if(!alarm) return NULL;
 
-    sprintf(buffer,"message %s severity %s status %s",
-        message.c_str(),severity.c_str(),status.c_str());
-    return Py_BuildValue("s",buffer);
+    std::ostringstream strm;
+    strm<<"message "<<alarm->getMessage()
+        <<" severity "<<(*AlarmSeverityFunc::getSeverityNames())[alarm->getSeverity()]
+        <<" status "<<(*AlarmStatusFunc::getStatusNames())[alarm->getStatus()];
+
+    return Py_BuildValue("s",strm.str().c_str());
 }
 
 static PyObject * _getAlarmPy(PyObject *willBeNull, PyObject *args)
 {
     PyObject *pcapsule = 0;
-    if(!PyArg_ParseTuple(args,"O:alarmPy",
-        &pcapsule))
+    if(!PyArg_ParseTuple(args,"O!:alarmPy",
+        &PyCapsule_Type, &pcapsule))
     {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (pvt)");
         return NULL;
     }
-    void *pvoid = PyCapsule_GetPointer(pcapsule,"alarmPvt");
-    if(pvoid==0) {
-        PyErr_SetString(PyExc_SyntaxError,
-           "first arg must be return from _init");
-        return NULL;
-    }
-    AlarmPvt *pvt = static_cast<AlarmPvt *>(pvoid);
-    return pvt->get();
+    Alarm* alarm = alarm_t::unwrap(pcapsule);
+    if(!alarm) return NULL;
+
+    Py_INCREF(pcapsule);
+    return pcapsule;
 }
 
 static PyObject * _getMessage(PyObject *willBeNull, PyObject *args)
 {
     PyObject *pcapsule = 0;
-    if(!PyArg_ParseTuple(args,"O:alarmPy",
-        &pcapsule))
+    if(!PyArg_ParseTuple(args,"O!:alarmPy",
+        &PyCapsule_Type, &pcapsule))
     {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (pvt)");
         return NULL;
     }
-    void *pvoid = PyCapsule_GetPointer(pcapsule,"alarmPvt");
-    if(pvoid==0) {
-        PyErr_SetString(PyExc_SyntaxError,
-           "first arg must be return from _init");
-        return NULL;
-    }
-    AlarmPvt *pvt = static_cast<AlarmPvt *>(pvoid);
-    return Py_BuildValue("s",pvt->alarm.getMessage().c_str());
+    Alarm* alarm = alarm_t::unwrap(pcapsule);
+    if(!alarm) return NULL;
+
+    return Py_BuildValue("s",alarm->getMessage().c_str());
 }
 
 static PyObject * _setMessage(PyObject *willBeNull, PyObject *args)
 {
     PyObject *pcapsule = 0;
     char *buffer;
-    if(!PyArg_ParseTuple(args,"Os:alarmPy",
-        &pcapsule,
+    if(!PyArg_ParseTuple(args,"O!s:alarmPy",
+        &PyCapsule_Type, &pcapsule,
         &buffer))
     {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (pvt,string)");
         return NULL;
     }
-    void *pvoid = PyCapsule_GetPointer(pcapsule,"alarmPvt");
-    if(pvoid==0) {
-        PyErr_SetString(PyExc_SyntaxError,
-           "first arg must be return from _init");
-        return NULL;
-    }
-    AlarmPvt *pvt = static_cast<AlarmPvt *>(pvoid);
-    pvt->alarm.setMessage(buffer);
-    Py_INCREF(Py_None);
-    return Py_None;
+    Alarm* alarm = alarm_t::unwrap(pcapsule);
+    if(!alarm) return NULL;
+
+    alarm->setMessage(buffer);
+    Py_RETURN_NONE;
 }
 
 static PyObject * _getSeverity(PyObject *willBeNull, PyObject *args)
 {
     PyObject *pcapsule = 0;
-    if(!PyArg_ParseTuple(args,"O:alarmPy",
-        &pcapsule))
+    if(!PyArg_ParseTuple(args,"O!:alarmPy",
+        &PyCapsule_Type, &pcapsule))
     {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (pvt)");
         return NULL;
     }
-    void *pvoid = PyCapsule_GetPointer(pcapsule,"alarmPvt");
-    if(pvoid==0) {
-        PyErr_SetString(PyExc_SyntaxError,
-           "first arg must be return from _init");
-        return NULL;
-    }
-    AlarmPvt *pvt = static_cast<AlarmPvt *>(pvoid);
-    string severity = (*AlarmSeverityFunc::getSeverityNames())[pvt->alarm.getSeverity()];
+    Alarm* alarm = alarm_t::unwrap(pcapsule);
+    if(!alarm) return NULL;
+
+    string severity = (*AlarmSeverityFunc::getSeverityNames())[alarm->getSeverity()];
     return Py_BuildValue("s",severity.c_str());
 }
 
@@ -198,29 +120,22 @@ static PyObject * _setSeverity(PyObject *willBeNull, PyObject *args)
 {
     PyObject *pcapsule = 0;
     char *buffer;
-    if(!PyArg_ParseTuple(args,"Os:alarmPy",
-        &pcapsule,
+    if(!PyArg_ParseTuple(args,"O!s:alarmPy",
+        &PyCapsule_Type, &pcapsule,
         &buffer))
     {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (pvt,string)");
         return NULL;
     }
-    void *pvoid = PyCapsule_GetPointer(pcapsule,"alarmPvt");
-    if(pvoid==0) {
-        PyErr_SetString(PyExc_SyntaxError,
-           "first arg must be return from _init");
-        return NULL;
-    }
+    Alarm* alarm = alarm_t::unwrap(pcapsule);
+    if(!alarm) return NULL;
+
     StringArrayPtr choiceArrayPtr = AlarmSeverityFunc::getSeverityNames();
     size_t nchoices = choiceArrayPtr.get()->size();
-    AlarmPvt *pvt = static_cast<AlarmPvt *>(pvoid);
     for(size_t i=0;i<nchoices; i++) {
         string choice = (*choiceArrayPtr)[i];
         if(choice.compare(buffer)==0) {
-            pvt->alarm.setSeverity(AlarmSeverityFunc::getSeverity(i));
-            Py_INCREF(Py_None);
-            return Py_None;
+            alarm->setSeverity(AlarmSeverityFunc::getSeverity(i));
+            Py_RETURN_NONE;
         }
     }
     PyErr_SetString(PyExc_ValueError,"unknown severity");
@@ -230,21 +145,15 @@ static PyObject * _setSeverity(PyObject *willBeNull, PyObject *args)
 static PyObject * _getStatus(PyObject *willBeNull, PyObject *args)
 {
     PyObject *pcapsule = 0;
-    if(!PyArg_ParseTuple(args,"O:alarmPy",
-        &pcapsule))
+    if(!PyArg_ParseTuple(args,"O!:alarmPy",
+        &PyCapsule_Type, &pcapsule))
     {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (pvt)");
         return NULL;
     }
-    void *pvoid = PyCapsule_GetPointer(pcapsule,"alarmPvt");
-    if(pvoid==0) {
-        PyErr_SetString(PyExc_SyntaxError,
-           "first arg must be return from _init");
-        return NULL;
-    }
-    AlarmPvt *pvt = static_cast<AlarmPvt *>(pvoid);
-    string severity = (*AlarmStatusFunc::getStatusNames())[pvt->alarm.getStatus()];
+    Alarm* alarm = alarm_t::unwrap(pcapsule);
+    if(!alarm) return NULL;
+
+    string severity = (*AlarmStatusFunc::getStatusNames())[alarm->getStatus()];
     return Py_BuildValue("s",severity.c_str());
 }
 
@@ -252,29 +161,24 @@ static PyObject * _setStatus(PyObject *willBeNull, PyObject *args)
 {
     PyObject *pcapsule = 0;
     char *buffer;
-    if(!PyArg_ParseTuple(args,"Os:alarmPy",
-        &pcapsule,
+    if(!PyArg_ParseTuple(args,"O!s:alarmPy",
+        &PyCapsule_Type, &pcapsule,
         &buffer))
     {
         PyErr_SetString(PyExc_SyntaxError,
            "Bad argument. Expected (pvt,string)");
         return NULL;
     }
-    void *pvoid = PyCapsule_GetPointer(pcapsule,"alarmPvt");
-    if(pvoid==0) {
-        PyErr_SetString(PyExc_SyntaxError,
-           "first arg must be return from _init");
-        return NULL;
-    }
+    Alarm* alarm = alarm_t::unwrap(pcapsule);
+    if(!alarm) return NULL;
+
     StringArrayPtr choiceArrayPtr = AlarmStatusFunc::getStatusNames();
     size_t nchoices = choiceArrayPtr.get()->size();
-    AlarmPvt *pvt = static_cast<AlarmPvt *>(pvoid);
     for(size_t i=0;i<nchoices; i++) {
         string choice = (*choiceArrayPtr)[i];
         if(choice.compare(buffer)==0) {
-            pvt->alarm.setStatus(AlarmStatusFunc::getStatus(i));
-            Py_INCREF(Py_None);
-            return Py_None;
+            alarm->setStatus(AlarmStatusFunc::getStatus(i));
+            Py_RETURN_NONE;
         }
     }
     PyErr_SetString(PyExc_ValueError,"unknown status");
@@ -287,16 +191,9 @@ static PyObject * _getSeverityChoices(PyObject *willBeNull, PyObject *args)
     if(!PyArg_ParseTuple(args,"O:alarmPy",
         &pcapsule))
     {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (pvt)");
         return NULL;
     }
-    void *pvoid = PyCapsule_GetPointer(pcapsule,"alarmPvt");
-    if(pvoid==0) {
-        PyErr_SetString(PyExc_SyntaxError,
-           "first arg must be return from _init");
-        return NULL;
-    }
+
     StringArrayPtr choices = AlarmSeverityFunc::getSeverityNames();
     if(choices.get()->size()!=5) {
         throw std::logic_error("number severity choices not 5");
@@ -316,16 +213,9 @@ static PyObject * _getStatusChoices(PyObject *willBeNull, PyObject *args)
     if(!PyArg_ParseTuple(args,"O:alarmPy",
         &pcapsule))
     {
-        PyErr_SetString(PyExc_SyntaxError,
-           "Bad argument. Expected (pvt)");
         return NULL;
     }
-    void *pvoid = PyCapsule_GetPointer(pcapsule,"alarmPvt");
-    if(pvoid==0) {
-        PyErr_SetString(PyExc_SyntaxError,
-           "first arg must be return from _init");
-        return NULL;
-    }
+
     StringArrayPtr choices = AlarmStatusFunc::getStatusNames();
     if(choices.get()->size()!=8) {
         throw std::logic_error("number status choices not 8");
@@ -371,11 +261,11 @@ static PyMethodDef methods[] = {
     {NULL,NULL,0,NULL}
 };
 
+} // namespace
+
 PyMODINIT_FUNC initalarmPy(void)
 {
     PyObject * m = Py_InitModule("alarmPy",methods);
     if(m==NULL) printf("initalarmPy failed\n");
 }
-
-}}
 
