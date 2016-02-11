@@ -11,6 +11,7 @@ masarServiceRun_LIBS += masarCore nt pvAccess pvData Com
 masarServiceRun_SYS_LIBS += $(PYTHON)
 
 LIBRARY += masarCore
+masarCore_LIBS += nt pvAccess pvData Com
 
 SRC_DIRS += $(SRC)/masarServiceRun
 
