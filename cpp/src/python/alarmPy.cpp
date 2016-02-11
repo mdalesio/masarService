@@ -75,6 +75,7 @@ static PyObject * _destroy(PyObject *willBeNull, PyObject *args)
     AlarmPvt *pvt = static_cast<AlarmPvt *>(pvoid);
     pvt->destroy();
     delete pvt;
+    PyCapsule_SetPointer(pcapsule, NULL);
     Py_INCREF(Py_None);
     return Py_None;
 }

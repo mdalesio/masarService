@@ -95,6 +95,7 @@ try{
         PyUnlockGIL U;
         gatherV3Data->destroy();
     }
+    PyCapsule_SetPointer(pcapsule, NULL);
     Py_RETURN_NONE;
 }EXECTOPY(std::exception, RuntimeError)
     return NULL;

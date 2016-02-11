@@ -44,11 +44,8 @@ NTTablePvt::NTTablePvt(
     PVStructurePtr const & pv)
 : nttable(arg),
   pvStructure(pv),
-  pyObject()
+  pyObject(PyCapsule_New(&pvStructure,"pvStructure",0))
 {
-    pyObject.reset(PyCapsule_New(&pvStructure,"pvStructure",0));
-    if(!pyObject.get())
-        throw std::bad_alloc();
 }
 
 NTTablePvt::~NTTablePvt()
@@ -87,8 +84,11 @@ static PyObject * _init(PyObject *willbenull, PyObject *args)
            "Bad argument. pvStructure was not a NTTable");
         return NULL;
     }
+    PyObj ret(PyCapsule_New(pv,"nttablePvt",0));
     NTTablePvt *pvt = new NTTablePvt(nttable,pvStructure);
-    return PyCapsule_New(pvt,"nttablePvt",0);
+    PyCapsule_SetPointer(ret.get(), pvt);
+    return ret.release();
+//    return PyCapsule_New(pvt,"nttablePvt",0);
 }
 
 static PyObject * _create(PyObject *willbenull, PyObject *args)
