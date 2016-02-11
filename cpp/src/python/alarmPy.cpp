@@ -16,6 +16,8 @@
 #include <pv/pvAlarm.h>
 #include <stdexcept>
 
+#include "pyhelper.h"
+
 namespace epics { namespace masar {
 
 using namespace epics::pvData;
@@ -26,16 +28,15 @@ public:
     AlarmPvt();
     ~AlarmPvt();
     void destroy();
-    PyObject *get(){return pyObject;}
+    PyObject *get(){return pyObject.get();}
 public:
     Alarm alarm;
-    PyObject *pyObject;
+    PyObj pyObject;
 };
 
 AlarmPvt::AlarmPvt()
+    :pyObject(PyCapsule_New(&alarm,"alarm",0))
 {
-    pyObject = PyCapsule_New(&alarm,"alarm",0);
-    Py_INCREF(pyObject);
 }
 
 AlarmPvt::~AlarmPvt()
@@ -44,7 +45,7 @@ AlarmPvt::~AlarmPvt()
 
 void AlarmPvt::destroy()
 {
-    Py_DECREF(pyObject);
+    pyObject.reset();
 }
 
 

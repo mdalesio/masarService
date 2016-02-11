@@ -16,6 +16,8 @@
 #include <pv/nt.h>
 #include <stdexcept>
 
+#include "pyhelper.h"
+
 namespace epics { namespace masar {
 
 using std::tr1::static_pointer_cast;
@@ -30,11 +32,11 @@ public:
         PVStructurePtr const & pvStructure);
     ~NTTablePvt();
     void destroy();
-    PyObject *get(){return pyObject;}
+    PyObject *get(){return pyObject.get();}
 public:
     NTTable::shared_pointer nttable;
     PVStructurePtr pvStructure;
-    PyObject *pyObject;
+    PyObj pyObject;
 };
 
 NTTablePvt::NTTablePvt(
@@ -42,10 +44,11 @@ NTTablePvt::NTTablePvt(
     PVStructurePtr const & pv)
 : nttable(arg),
   pvStructure(pv),
-  pyObject(0)
+  pyObject()
 {
-    pyObject = PyCapsule_New(&pvStructure,"pvStructure",0);
-    Py_INCREF(pyObject);
+    pyObject.reset(PyCapsule_New(&pvStructure,"pvStructure",0));
+    if(!pyObject.get())
+        throw std::bad_alloc();
 }
 
 NTTablePvt::~NTTablePvt()
@@ -54,7 +57,7 @@ NTTablePvt::~NTTablePvt()
 
 void NTTablePvt::destroy()
 {
-    Py_DECREF(pyObject);
+    pyObject.reset();
     nttable.reset();
 }
 
