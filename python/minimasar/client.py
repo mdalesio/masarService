@@ -22,7 +22,7 @@ class MASAR(object):
 
         If specified, 'status' should be '', 'active', or 'inactive'.
 
-        if 'specified', 'eventid' returns the configuration used for a particlular snapshot.
+        If specified, 'eventid' returns the configuration used for a particular snapshot.
         """
         pass
     @rpccall("%sretrieveServiceConfigProps")
@@ -88,7 +88,7 @@ class MASAR(object):
     def createServiceConfig(configname='s', desc='s', system='s', config='s'):
         """Create a configuration.
 
-        Returns the same as retrieveServiceConfigs()
+        Returns the same as retrieveServiceConfigs().
 
         Fails if 'configname' already exists.
 
@@ -111,7 +111,7 @@ class MASAR(object):
         Provided 'configname' must exist, and provided 'oldidx' must be the 'config_idx'
         of the 'active' configuration with this name.
 
-        Otherwise the same as createServiceConfig()
+        Otherwise the same as createServiceConfig().
         """
         pass
 
